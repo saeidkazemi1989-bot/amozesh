@@ -26,7 +26,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
       - name: Install dependencies
         run: npm ci
       - name: Build web app
