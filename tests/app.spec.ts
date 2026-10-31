@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { phraseById } from '../src/data/curriculum';
+import { lessons, phraseById } from '../src/data/curriculum';
 import { createProgress, dateKey, STORAGE_KEY } from '../src/lib/learning';
 import type { Progress } from '../src/lib/learning';
 
@@ -119,7 +119,7 @@ test('one-question mode is a real session but does not mark a lesson complete', 
 
 test('lesson search, filters and previews work', async ({ page }) => {
   await page.goto('/#lessons');
-  await expect(page.locator('.lesson-card')).toHaveCount(12);
+  await expect(page.locator('.lesson-card')).toHaveCount(lessons.length);
   await page.getByRole('textbox', { name: 'جست‌وجوی درس‌ها' }).fill('قهوه');
   await expect(page.locator('.lesson-card')).toHaveCount(1);
   await page.locator('.lesson-card').click();
