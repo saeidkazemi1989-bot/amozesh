@@ -1,124 +1,124 @@
 
-> ghadam-language-learning@1.3.0 test
+> ghadam-language-learning@1.3.1 test
 > tsx --test src/lib/*.test.ts server/*.test.ts
 
 TAP version 13
-# (node:2276) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (node:2510) ExperimentalWarning: SQLite is an experimental feature and might change at any time
 # (Use `node --trace-warnings ...` to show where the warning was created)
 # Subtest: calendar months clamp month ends and extend from expiry
 ok 1 - calendar months clamp month ends and extend from expiry
   ---
-  duration_ms: 1.027212
+  duration_ms: 1.402777
   type: 'test'
   ...
 # Subtest: password hashing and sessions are server-side
 ok 2 - password hashing and sessions are server-side
   ---
-  duration_ms: 110.927786
+  duration_ms: 232.673034
   type: 'test'
   ...
 # Subtest: level access is free level plus unexpired grants; admin sees all
 ok 3 - level access is free level plus unexpired grants; admin sees all
   ---
-  duration_ms: 0.976605
+  duration_ms: 1.788429
   type: 'test'
   ...
-# (node:2277) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (node:2511) ExperimentalWarning: SQLite is an experimental feature and might change at any time
 # (Use `node --trace-warnings ...` to show where the warning was created)
 # Subtest: setup, member creation, timed grant, content gating and revocation work end to end
 ok 4 - setup, member creation, timed grant, content gating and revocation work end to end
   ---
-  duration_ms: 189.914918
+  duration_ms: 304.607776
   type: 'test'
   ...
 # Subtest: calendar arithmetic handles month, year and leap-day boundaries
 ok 5 - calendar arithmetic handles month, year and leap-day boundaries
   ---
-  duration_ms: 1.285011
+  duration_ms: 5.745677
   type: 'test'
   ...
 # Subtest: curriculum has 10 levels, 60 lessons and 180 unique phrases; only free level ships in the app
 ok 6 - curriculum has 10 levels, 60 lessons and 180 unique phrases; only free level ships in the app
   ---
-  duration_ms: 0.299763
+  duration_ms: 0.57812
   type: 'test'
   ...
 # Subtest: a new learner starts at hello with a gentle five-minute session
 ok 7 - a new learner starts at hello with a gentle five-minute session
   ---
-  duration_ms: 0.579826
+  duration_ms: 4.329812
   type: 'test'
   ...
 # Subtest: all session lengths respect the selected goal and a tiny session is one question
 ok 8 - all session lengths respect the selected goal and a tiny session is one question
   ---
-  duration_ms: 0.32453
+  duration_ms: 0.601524
   type: 'test'
   ...
 # Subtest: options contain one correct answer and three distinct choices
 ok 9 - options contain one correct answer and three distinct choices
   ---
-  duration_ms: 0.51604
+  duration_ms: 0.986651
   type: 'test'
   ...
 # Subtest: word order ignores punctuation and case, not word sequence
 ok 10 - word order ignores punctuation and case, not word sequence
   ---
-  duration_ms: 0.283648
+  duration_ms: 0.546015
   type: 'test'
   ...
 # Subtest: answering is idempotent and learning a phrase schedules tomorrow
 ok 11 - answering is idempotent and learning a phrase schedules tomorrow
   ---
-  duration_ms: 0.264099
+  duration_ms: 0.612514
   type: 'test'
   ...
 # Subtest: complete a lesson, persist it, and recommend the next lesson
 ok 12 - complete a lesson, persist it, and recommend the next lesson
   ---
-  duration_ms: 5.514719
+  duration_ms: 16.834124
   type: 'test'
   ...
 # Subtest: a wrong answer is kind but returns sooner in review
 ok 13 - a wrong answer is kind but returns sooner in review
   ---
-  duration_ms: 0.628469
+  duration_ms: 1.136382
   type: 'test'
   ...
 # Subtest: correct review increases the interval and caps at thirty days
 ok 14 - correct review increases the interval and caps at thirty days
   ---
-  duration_ms: 0.575449
+  duration_ms: 1.46872
   type: 'test'
   ...
 # Subtest: overdue items remain available after a break; there is no streak reset
 ok 15 - overdue items remain available after a break; there is no streak reset
   ---
-  duration_ms: 0.174774
+  duration_ms: 0.343678
   type: 'test'
   ...
 # Subtest: tiny practice and early exit never falsely complete a lesson
 ok 16 - tiny practice and early exit never falsely complete a lesson
   ---
-  duration_ms: 0.45028
+  duration_ms: 0.984829
   type: 'test'
   ...
 # Subtest: free review works before any phrase has been learned
 ok 17 - free review works before any phrase has been learned
   ---
-  duration_ms: 0.115425
+  duration_ms: 0.228359
   type: 'test'
   ...
 # Subtest: corrupt, incompatible and unsafe saved data is rejected
 ok 18 - corrupt, incompatible and unsafe saved data is rejected
   ---
-  duration_ms: 0.239822
+  duration_ms: 0.51789
   type: 'test'
   ...
 # Subtest: restored mid-question progress remains valid and does not award duplicate activity
 ok 19 - restored mid-question progress remains valid and does not award duplicate activity
   ---
-  duration_ms: 0.167683
+  duration_ms: 0.397976
   type: 'test'
   ...
 1..19
@@ -129,4 +129,9 @@ ok 19 - restored mid-question progress remains valid and does not award duplicat
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 556.580997
+# duration_ms 842.523089
+
+> ghadam-language-learning@1.3.1 test:apps-script
+> node scripts/test-apps-script.mjs
+
+Apps Script backend verified: setup, login, admin/member roles, timed grants, extension, revocation, disabling and content gating.
