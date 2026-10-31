@@ -88,3 +88,6 @@ npm run package:mobile
 - ۱۰ سطح: مبتدی ۱ تا ۳، متوسط ۱ تا ۳، پیشرفته ۱ تا ۳، حرفه‌ای. سطح مبتدی ۱ رایگان است.
 - یادآور روزانه با ساعت انتخابی در اندروید، حتی وقتی برنامه بسته است (با اجازهٔ اعلان و هشدار دقیق).
 - سرور عضویت با پنل مدیر: ساخت عضو، فعال‌سازی هر سطح برای ۱ تا ۳۶ ماه، تمدید، لغو، غیرفعال‌سازی و تغییر رمز. راهنمای استقرار: `DEPLOY.fa.md`.
+- اگر سرور یا دامنه ندارید، راهنمای فارسی میزبانی ابری با آدرس آماده: `HOSTING.fa.md`.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/saeidkazemi1989-bot/amozesh/tree/arena/71cbd6a3-amozesh)

@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ghadam-membership
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /api/health
+    autoDeployTrigger: off
+    disk:
+      name: ghadam-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /data/ghadam.sqlite
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SETUP_TOKEN
+        generateValue: true
