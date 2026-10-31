@@ -27,6 +27,15 @@ test('calendar arithmetic handles month, year and leap-day boundaries', () => {
   assert.match(dateKey(new Date(2026, 9, 30, 23, 59)), /2026-10-30/);
 });
 
+test('curriculum has 30 lessons and 90 unique phrases', () => {
+  assert.equal(lessons.length, 30);
+  const phrases = lessons.flatMap((lesson) => lesson.phrases);
+  assert.equal(phrases.length, 90);
+  assert.equal(new Set(phrases.map((phrase) => phrase.id)).size, 90);
+  assert.equal(new Set(lessons.map((lesson) => lesson.id)).size, 30);
+  for (const lesson of lessons) assert.equal(lesson.phrases.length, 3);
+});
+
 test('a new learner starts at hello with a gentle five-minute session', () => {
   const progress = createProgress();
   assert.equal(nextLesson(progress).id, 'hello');
@@ -107,6 +116,8 @@ test('a wrong answer is kind but returns sooner in review', () => {
 
 test('correct review increases the interval and caps at thirty days', () => {
   let progress = completedLesson().progress;
+  // Keep the free-review pool stable so the same phrase advances through every interval.
+  for (const id of Object.keys(progress.learned)) progress.learned[id] = { ...progress.learned[id], due: '2099-01-01' };
   for (const [index, expected] of [3, 7, 14, 30, 30].entries()) {
     const day = addDays(TODAY, index + 1);
     const session = createSession('review', progress);

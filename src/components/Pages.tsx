@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, BookOpen, Check, CheckCheck, ChevronLeft, Clock3, Coffee, Ear, Flag, Heart, Leaf, ListChecks, MessageCircle, Play, RotateCcw, Search, Sparkles, Sprout, Target } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, CheckCheck, ChevronLeft, Clock3, Coffee, Ear, Flag, Heart, Leaf, ListChecks, MessageCircle, Play, RotateCcw, Search, Sparkles, Sprout, Target, Hash, Users, UtensilsCrossed, CloudSun, Stethoscope, Plane, Phone, Palette, CalendarDays, GraduationCap, PawPrint, Shirt, Home, HandHelping, ChefHat, Bus, PartyPopper, Smartphone } from 'lucide-react';
 import { allPhrases, lessons } from '../data/curriculum';
 import type { Lesson, Phrase } from '../data/curriculum';
 import { dateKey, duePhrases, exerciseCount, faNumber, lastSevenDays, learnedCount, nextLesson, practiceDays } from '../lib/learning';
@@ -10,7 +10,7 @@ import { LearningIllustration, SmallPlant } from './Illustrations';
 
 export type StartSession = (mode: SessionMode, lessonId?: string) => void;
 export const LessonIcon = ({ icon, size = 24 }: { icon: Lesson['icon']; size?: number }) => {
-  const icons = { hello: MessageCircle, user: Sprout, heart: Heart, coffee: Coffee, ear: Ear, map: Flag, home: BookOpen, sun: Sparkles, bag: ListChecks, clock: Clock3, smile: Heart, chat: MessageCircle };
+  const icons = { hello: MessageCircle, user: Sprout, heart: Heart, coffee: Coffee, ear: Ear, map: Flag, home: BookOpen, sun: Sparkles, bag: ListChecks, clock: Clock3, smile: Heart, chat: MessageCircle, numbers: Hash, family: Users, food: UtensilsCrossed, weather: CloudSun, health: Stethoscope, travel: Plane, phone: Phone, hobby: Palette, calendar: CalendarDays, school: GraduationCap, animals: PawPrint, clothes: Shirt, house: Home, help: HandHelping, restaurant: ChefHat, transport: Bus, party: PartyPopper, tech: Smartphone };
   const Icon = icons[icon];
   return <Icon size={size} strokeWidth={1.7}/>;
 };
