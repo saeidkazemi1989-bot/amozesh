@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lessons, phraseById } from '../data/curriculum';
+import { lessons as fullLessons } from '../../server/content/curriculum';
+import { lessonCatalog, levels } from '../data/catalog';
 import { addDays, advanceSession, applyStep, createProgress, createSession, dateKey, duePhrases, finishSession, isOrderCorrect, lastSevenDays, learnedCount, makeOptions, nextLesson, parseProgress, practiceDays, scrambledTokens } from './learning';
 import type { Progress, Session } from './learning';
 
@@ -27,13 +29,17 @@ test('calendar arithmetic handles month, year and leap-day boundaries', () => {
   assert.match(dateKey(new Date(2026, 9, 30, 23, 59)), /2026-10-30/);
 });
 
-test('curriculum has 30 lessons and 90 unique phrases', () => {
-  assert.equal(lessons.length, 30);
-  const phrases = lessons.flatMap((lesson) => lesson.phrases);
-  assert.equal(phrases.length, 90);
-  assert.equal(new Set(phrases.map((phrase) => phrase.id)).size, 90);
-  assert.equal(new Set(lessons.map((lesson) => lesson.id)).size, 30);
-  for (const lesson of lessons) assert.equal(lesson.phrases.length, 3);
+test('curriculum has 10 levels, 60 lessons and 180 unique phrases; only free level ships in the app', () => {
+  assert.equal(levels.length, 10);
+  assert.equal(lessonCatalog.length, 60);
+  assert.equal(fullLessons.length, 60);
+  const phrases = fullLessons.flatMap((lesson) => lesson.phrases);
+  assert.equal(phrases.length, 180);
+  assert.equal(new Set(phrases.map((phrase) => phrase.id)).size, 180);
+  assert.equal(lessons.length, 6);
+  assert.ok(lessons.every((lesson) => lesson.levelId === 'beginner-1'));
+  for (const level of levels) assert.equal(fullLessons.filter((lesson) => lesson.levelId === level.id).length, 6);
+  for (const lesson of fullLessons) assert.equal(lesson.phrases.length, 3);
 });
 
 test('a new learner starts at hello with a gentle five-minute session', () => {

@@ -47,6 +47,7 @@ self.addEventListener('activate', (event) => {
 });
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
+  if (new URL(event.request.url).pathname.startsWith('/api/')) return;
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).catch(() => caches.match('/index.html', { ignoreVary: true })));
     return;
@@ -72,10 +73,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     allowedHosts: true,
+    proxy: { '/api': { target: 'http://127.0.0.1:3001', changeOrigin: false } },
   },
   preview: {
     host: '0.0.0.0',
     port: 4173,
     allowedHosts: true,
+    proxy: { '/api': { target: 'http://127.0.0.1:3001', changeOrigin: false } },
   },
 });

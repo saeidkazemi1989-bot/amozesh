@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { lessons, phraseById } from '../src/data/curriculum';
+import { phraseById } from '../src/data/curriculum';
+import { lessonCatalog } from '../src/data/catalog';
 import { createProgress, dateKey, STORAGE_KEY } from '../src/lib/learning';
 import type { Progress } from '../src/lib/learning';
 
@@ -119,7 +120,7 @@ test('one-question mode is a real session but does not mark a lesson complete', 
 
 test('lesson search, filters and previews work', async ({ page }) => {
   await page.goto('/#lessons');
-  await expect(page.locator('.lesson-card')).toHaveCount(lessons.length);
+  await expect(page.locator('.lesson-card')).toHaveCount(lessonCatalog.length);
   await page.getByRole('textbox', { name: 'جست‌وجوی درس‌ها' }).fill('قهوه');
   await expect(page.locator('.lesson-card')).toHaveCount(1);
   await page.locator('.lesson-card').click();
@@ -238,4 +239,17 @@ test('core pages and a learning card have no automated WCAG A/AA violations', as
   await page.getByRole('button', { name: 'شروع ۵ دقیقه‌ای امروز' }).click();
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   expect(result.violations).toEqual([]);
+});
+
+test('levels are grouped, locked levels open the account dialog, and reminder settings are present', async ({ page }) => {
+  await page.goto('/#lessons');
+  await expect(page.locator('.level-strip button')).toHaveCount(11);
+  await expect(page.locator('.level-group')).toHaveCount(10);
+  await page.locator('.locked-lesson').first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /ورود به حساب قدم|راه‌اندازی حساب مدیر/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'تنظیمات', exact: true }).first().click();
+  await expect(page.getByRole('switch', { name: 'یادآوری سر ساعت مشخص' })).toBeVisible();
+  await expect(page.getByLabel('ساعت یادآوری روزانه')).toHaveValue('20:00');
 });

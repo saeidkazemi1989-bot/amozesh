@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-server
+release
+android
+.git
+.env
+.env.*
+data
+test-results
+playwright-report
+*.tsbuildinfo

@@ -1,11 +1,13 @@
-import { allPhrases, lessons, lessonById, phraseById } from '../data/curriculum';
+import { allPhrases, lessons, lessonById, phraseById, isKnownPhrase } from '../data/curriculum';
+import { catalogLessonById } from '../data/catalog';
 import type { Phrase } from '../data/curriculum';
 
 export type Goal = 3 | 5 | 10;
 export type SessionMode = 'lesson' | 'review' | 'tiny';
 export type Memory = { level: number; due: string; introduced: string; lastReviewed: string; attempts: number; correct: number };
 export type Activity = { steps: number; sessions: number };
-export type Settings = { goal: Goal; name: string; showPronunciation: boolean; slowAudio: boolean };
+export type Reminder = { enabled: boolean; time: string };
+export type Settings = { goal: Goal; name: string; showPronunciation: boolean; slowAudio: boolean; reminder: Reminder };
 export type Exercise = 'meaning' | 'listening' | 'order';
 export type Step = { id: string; kind: 'learn' | 'practice'; phraseId: string; exercise: Exercise; options: string[] };
 export type Answer = { phraseId: string; correct: boolean; revealed: boolean };
@@ -53,7 +55,7 @@ export function lastSevenDays(today = dateKey()): string[] {
 export function createProgress(): Progress {
   return {
     version: 1, learned: {}, completedLessons: [], activity: {}, history: [],
-    settings: { goal: 5, name: '', showPronunciation: true, slowAudio: true },
+    settings: { goal: 5, name: '', showPronunciation: true, slowAudio: true, reminder: { enabled: false, time: '20:00' } },
     activeSession: null, totalAnswers: 0, totalCorrect: 0,
   };
 }
@@ -202,7 +204,7 @@ export function practiceDays(progress: Progress): number {
 }
 
 export function learnedCount(progress: Progress): number {
-  return Object.keys(progress.learned).filter((id) => phraseById.has(id)).length;
+  return Object.keys(progress.learned).filter((id) => isKnownPhrase(id)).length;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -215,17 +217,17 @@ function validSession(value: unknown): value is Session {
   if (!isRecord(value) || !isString(value.id) || !isMode(value.mode) || !isString(value.title) || !isString(value.startedAt) || Number.isNaN(Date.parse(value.startedAt))) return false;
   if (!Array.isArray(value.steps) || !value.steps.length || value.steps.length > 20 || !isCount(value.index) || value.index >= value.steps.length) return false;
   if (value.mode === 'review') { if (value.lessonId !== undefined) return false; }
-  else if (!isString(value.lessonId) || !lessonById.has(value.lessonId)) return false;
+  else if (!isString(value.lessonId) || !catalogLessonById.has(value.lessonId)) return false;
   const steps = value.steps;
   if (value.mode === 'tiny' && steps.length !== 1) return false;
   const stepsValid = steps.every((raw, i) => {
     if (!isRecord(raw) || raw.id !== `step-${i}` || !isString(raw.phraseId)) return false;
     const phrase = phraseById.get(raw.phraseId);
-    if (!phrase || !['learn', 'practice'].includes(String(raw.kind)) || !['meaning', 'listening', 'order'].includes(String(raw.exercise))) return false;
+    if (!isKnownPhrase(String(raw.phraseId)) || !['learn', 'practice'].includes(String(raw.kind)) || !['meaning', 'listening', 'order'].includes(String(raw.exercise))) return false;
     if (!Array.isArray(raw.options) || !raw.options.every(isString)) return false;
     if (raw.kind === 'learn') return value.mode === 'lesson' && i < 3 && raw.options.length === 0;
     if (raw.exercise === 'order') return raw.options.length === 0;
-    return raw.options.length === 3 && new Set(raw.options).size === 3 && raw.options.includes(phrase[raw.exercise === 'meaning' ? 'en' : 'fa']);
+    return raw.options.length === 3 && new Set(raw.options).size === 3 && (!phrase || raw.options.includes(phrase[raw.exercise === 'meaning' ? 'en' : 'fa']));
   });
   if (!stepsValid) return false;
   return Array.isArray(value.answers) && value.answers.length <= value.index + 1 && value.answers.every((answer, i) => isRecord(answer) && answer.phraseId === steps[i]?.phraseId && typeof answer.correct === 'boolean' && typeof answer.revealed === 'boolean');
@@ -236,10 +238,13 @@ export function parseProgress(raw: string): Progress | null {
     const value: unknown = JSON.parse(raw);
     if (!isRecord(value) || value.version !== 1 || !isRecord(value.learned) || !isRecord(value.settings) || !isRecord(value.activity)) return null;
     if ((typeof value.settings.goal !== 'number' || ![3, 5, 10].includes(value.settings.goal)) || !isString(value.settings.name) || value.settings.name.length > 40 || typeof value.settings.showPronunciation !== 'boolean' || typeof value.settings.slowAudio !== 'boolean') return null;
-    if (!Array.isArray(value.completedLessons) || !value.completedLessons.every((id) => isString(id) && lessonById.has(id))) return null;
+    const reminder = value.settings.reminder;
+    if (reminder !== undefined && (!isRecord(reminder) || typeof reminder.enabled !== 'boolean' || !isString(reminder.time) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(reminder.time))) return null;
+    if (reminder === undefined) value.settings.reminder = { enabled: false, time: '20:00' };
+    if (!Array.isArray(value.completedLessons) || !value.completedLessons.every((id) => isString(id) && catalogLessonById.has(id))) return null;
     if (!isCount(value.totalAnswers) || !isCount(value.totalCorrect) || value.totalCorrect > value.totalAnswers) return null;
     for (const [id, memory] of Object.entries(value.learned)) {
-      if (!phraseById.has(id) || !isRecord(memory) || !isCount(memory.level) || memory.level > 5 || !isDate(memory.due) || !isDate(memory.introduced) || !isDate(memory.lastReviewed) || !isCount(memory.attempts) || !isCount(memory.correct) || memory.correct > memory.attempts) return null;
+      if (!isKnownPhrase(id) || !isRecord(memory) || !isCount(memory.level) || memory.level > 5 || !isDate(memory.due) || !isDate(memory.introduced) || !isDate(memory.lastReviewed) || !isCount(memory.attempts) || !isCount(memory.correct) || memory.correct > memory.attempts) return null;
     }
     for (const [date, activity] of Object.entries(value.activity)) {
       if (!isDate(date) || !isRecord(activity) || !isCount(activity.steps) || !isCount(activity.sessions)) return null;

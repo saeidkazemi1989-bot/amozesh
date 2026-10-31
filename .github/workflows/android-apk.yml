@@ -28,7 +28,11 @@ jobs:
           java-version: 21
       - name: Install dependencies
         run: npm ci
+      - name: Unit and API tests
+        run: npm test
       - name: Build web app
+        env:
+          VITE_API_URL: ${{ vars.GHADAM_API_URL }}
         run: npm run build
       - name: Sync Capacitor
         run: npx cap sync android
@@ -59,7 +63,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create android-latest --title "قدم برای اندروید" --notes "فایل نصبی اندروید. پیشرفت با نصب روی نسخهٔ قبلی حفظ می‌شود." release/ghadam-android.apk || gh release upload android-latest release/ghadam-android.apk --clobber
+          gh release create android-latest --title "قدم برای اندروید" --notes "فایل نصبی اندروید. پیشرفت با نصب روی نسخهٔ قبلی حفظ می‌شود. سطح مبتدی ۱ رایگان است؛ سطح‌های دیگر با حساب و سرور عضویت فعال می‌شوند." release/ghadam-android.apk || gh release upload android-latest release/ghadam-android.apk --clobber
       - name: Commit APK back to branch
         run: |
           git config user.name "github-actions[bot]"

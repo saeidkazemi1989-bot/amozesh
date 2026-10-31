@@ -8,6 +8,7 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     backgroundColor: '#f7f8f4',
   },
+  plugins: { LocalNotifications: { smallIcon: 'ic_stat_ghadam', iconColor: '#2D6049' } },
   server: {
     androidScheme: 'https',
   },

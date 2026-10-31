@@ -1,0 +1,16 @@
+services:
+  ghadam:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DB_PATH: /data/ghadam.sqlite
+      SETUP_TOKEN: ${SETUP_TOKEN:?set SETUP_TOKEN in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+    volumes:
+      - ghadam-data:/data
+volumes:
+  ghadam-data:
