@@ -32,8 +32,9 @@ jobs:
         run: |
           mkdir -p release
           set +e
-          npm test > release/test.log 2>&1
-          code=$?
+          code=0
+          npm test > release/test.log 2>&1 || code=$?
+          npm run test:apps-script >> release/test.log 2>&1 || code=$?
           tail -150 release/test.log
           exit $code
       - name: Build web app

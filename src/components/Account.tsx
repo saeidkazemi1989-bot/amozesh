@@ -34,7 +34,7 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
       <div className="account-actions"><button className="button button-outline" onClick={() => void membership.refresh()} disabled={membership.syncing}><RefreshCw size={16}/>بررسی دوباره</button>{membership.user.role === 'admin' && <button className="button button-primary" onClick={() => { onClose(); onAdmin(); }}><UserPlus size={16}/>مدیریت اعضا</button>}<button className="text-button danger-text" onClick={() => void membership.logout().then(onClose).catch((e) => notify(errorMessage(e)))}><LogOut size={16}/>خروج از حساب</button></div>
     </> : <>
       <p className="modal-description">سطح مبتدی ۱ رایگان است. برای سطح‌های دیگر، حسابی که مدیر برایت ساخته وارد کن.</p>
-      <label className="name-setting"><span><Server size={15}/>آدرس سرور قدم</span><input dir="ltr" value={server} placeholder="https://example.com" onChange={(event) => setServer(event.target.value)}/></label>
+      <label className="name-setting"><span><Server size={15}/>آدرس سرور یا لینک گوگل</span><input dir="ltr" value={server} placeholder="https://script.google.com/macros/s/.../exec" onChange={(event) => setServer(event.target.value)}/></label>
       <button className="text-button" onClick={() => void saveServer()}>ذخیره و بررسی سرور<ArrowLeft size={15}/></button>
       {needsSetup && <div className="privacy-note"><KeyRound size={20}/><p>این سرور تازه است. کد راه‌اندازی که هنگام نصب سرور ساخته شده وارد کن تا حساب مدیر خودت ساخته شود.</p></div>}
       <form onSubmit={(event) => void submit(event)} className="account-form">
