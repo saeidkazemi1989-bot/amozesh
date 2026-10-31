@@ -20,9 +20,11 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setBusy(true);
     try {
-      if (needsSetup) { const result = await api<{ token: string }>('/setup', { method: 'POST', body: JSON.stringify({ setupToken, username, name, password }) }); await setToken(result.token); }
-      else await login(username, password);
-      await membership.loggedIn(); notify('خوش آمدی به قدم.'); onClose();
+      let account;
+      if (needsSetup) { const result = await api<{ token: string; user: { role: string } }>('/setup', { method: 'POST', body: JSON.stringify({ setupToken, username, name, password }) }); await setToken(result.token); account = result.user; }
+      else account = await login(username, password);
+      await membership.loggedIn(); notify('خوش آمدی به قدم.');
+      if (account.role === 'admin') onAdmin(); else onClose();
     } catch (error) { notify(errorMessage(error)); } finally { setBusy(false); }
   }
   return <Modal title={membership.user ? 'حساب و دسترسی‌ها' : needsSetup ? 'راه‌اندازی حساب مدیر' : 'ورود به حساب قدم'} onClose={onClose} className="account-modal">

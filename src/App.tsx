@@ -39,7 +39,7 @@ export default function App() {
   const update = useAppUpdate();
   const installer = useInstallApp();
   const membership = useMembership(setProgress);
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(() => window.location.hash === '#admin');
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
   const [page, setPage] = useState<Page>(getPage);
@@ -63,6 +63,7 @@ export default function App() {
     const openShortcut = () => {
       if (window.location.hash === '#install') setInstallOpen(true);
       if (window.location.hash === '#update') setMaintenanceOpen(true);
+      if (window.location.hash === '#admin') setAccountOpen(true);
     };
     openShortcut();
     window.addEventListener('hashchange', openShortcut);
@@ -70,7 +71,7 @@ export default function App() {
   }, []);
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
   useEffect(() => { void initReminder(progress.settings.reminder).catch(() => {}); }, []);
-  useEffect(() => { if (page === 'admin' && membership.ready && membership.user?.role !== 'admin') navigate('today'); }, [page, membership.ready, membership.user]);
+  useEffect(() => { if (page === 'admin' && membership.ready && membership.user && membership.user.role !== 'admin') navigate('today'); }, [page, membership.ready, membership.user]);
   useEffect(() => { if (membership.ready && progress.activeSession?.lessonId && !membership.canLesson(progress.activeSession.lessonId)) { setProgress((current) => ({ ...current, activeSession: null })); if (page === 'session') navigate('today'); } }, [membership.ready, membership.revision, progress.activeSession?.lessonId, page]);
 
   function notify(message: string) {
@@ -144,7 +145,7 @@ export default function App() {
     </div>}
     {settingsOpen && <Settings progress={progress} setProgress={setProgress} onClose={() => setSettingsOpen(false)} notify={notify} update={update} onInstall={() => { setSettingsOpen(false); setInstallOpen(true); }} onAccount={() => { setSettingsOpen(false); setAccountOpen(true); }}/>
     }
-    {accountOpen && <AccountModal membership={membership} onClose={() => setAccountOpen(false)} onAdmin={() => navigate('admin')} notify={notify}/>}
+    {accountOpen && <AccountModal membership={membership} onClose={() => { setAccountOpen(false); if (page === 'admin' && !membership.user) navigate('today'); }} onAdmin={() => navigate('admin')} notify={notify}/>}
     {maintenanceOpen && <Modal title="به‌روزرسانی قدم" onClose={() => setMaintenanceOpen(false)}><UpdateSection update={update}/><button className="button button-outline full-width" onClick={() => { setMaintenanceOpen(false); setInstallOpen(true); }}>نصب روی موبایل</button></Modal>}
     {installOpen && <InstallModal installer={installer} onClose={() => setInstallOpen(false)}/>}
     {preview && <Modal title={preview.title} onClose={() => setPreviewId(null)} className="lesson-preview-modal"><div className="preview-meta"><span><BookOpen size={16}/>{faNumber(preview.phrases.length)} عبارت کاربردی</span><span><Sparkles size={16}/>از صفرِ صفر</span></div><p className="modal-description">اول با عبارت‌ها آشنا می‌شی، بعد چند تمرین ساده انجام می‌دی. نه امتحان، نه عجله.</p><div className="preview-phrases">{preview.phrases.map((phrase) => <div key={phrase.id}><AudioButton phrase={phrase} speech={speech}/><div><strong dir="ltr">{phrase.en}</strong><span>{phrase.fa}</span>{progress.settings.showPronunciation && <small>{phrase.pronunciation}</small>}</div></div>)}</div>{!speech.available && speech.ready && <p className="audio-notice">پخش صدا در این مرورگر در دسترس نیست؛ راهنمای نوشتاری تلفظ را داریم.</p>}<button className="button button-primary full-width" onClick={() => launch('lesson', preview.id)}>شروع {faNumber(progress.settings.goal)} دقیقه تمرین<ArrowLeft size={18}/></button><small className="preview-footnote">هر وقت خواستی، می‌توانی ذخیره کنی و بیرون بروی.</small></Modal>}

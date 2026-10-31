@@ -253,3 +253,10 @@ test('levels are grouped, locked levels open the account dialog, and reminder se
   await expect(page.getByRole('switch', { name: 'یادآوری سر ساعت مشخص' })).toBeVisible();
   await expect(page.getByLabel('ساعت یادآوری روزانه')).toHaveValue('20:00');
 });
+
+test('the direct management link opens sign-in instead of an empty admin page', async ({ page }) => {
+  await page.goto('/#admin');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /ورود به حساب قدم|راه‌اندازی حساب مدیر/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'ورود', exact: true })).toBeVisible();
+});
