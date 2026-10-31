@@ -29,7 +29,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Unit and API tests
-        run: npm test
+        run: |
+          mkdir -p release
+          set +e
+          npm test > release/test.log 2>&1
+          code=$?
+          tail -150 release/test.log
+          exit $code
       - name: Build web app
         env:
           VITE_API_URL: ${{ vars.GHADAM_API_URL }}
@@ -47,8 +53,8 @@ jobs:
           cp gradle-build.log release/gradle-build.log || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f release/gradle-build.log
-          git commit -m "chore: save Android build log [skip ci]" || exit 0
+          git add -f release/gradle-build.log release/test.log
+          git commit -m "chore: save Android build and test logs [skip ci]" || exit 0
           git push origin HEAD:arena/71cbd6a3-amozesh || true
       - name: Collect APK
         run: |
