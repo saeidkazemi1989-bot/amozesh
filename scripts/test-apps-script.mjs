@@ -29,16 +29,18 @@ class Sheet {
 class Book {
   constructor() { this.sheets = new Map(); }
   getId() { return 'test-book'; }
+  getUrl() { return 'https://docs.google.com/spreadsheets/d/test-book/edit'; }
   getSheetByName(name) { return this.sheets.get(name) ?? null; }
   insertSheet(name) { const sheet = new Sheet(name); this.sheets.set(name, sheet); return sheet; }
 }
 const book = new Book();
+let created = false;
 const props = new Map();
 const cache = new Map();
 const context = {
   console,
   Logger: { log() {} },
-  SpreadsheetApp: { getActiveSpreadsheet: () => book, openById: () => book },
+  SpreadsheetApp: { getActiveSpreadsheet: () => null, openById: () => book, create: () => { created = true; return book; } },
   PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props.get(k) ?? null, setProperty: (k, v) => props.set(k, v) }) },
   CacheService: { getScriptCache: () => ({ get: (k) => cache.get(k) ?? null, put: (k, v) => cache.set(k, v) }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
@@ -58,8 +60,11 @@ const call = (path, method = 'GET', body, token) => {
 };
 
 assert.equal(call('/health').data.ok, true);
-assert.equal(call('/setup-status').data.needsSetup, true);
+assert.equal(call('/setup-status').status, 500, 'before setup the API asks you to run setup');
 context.setup();
+assert.equal(created, true, 'standalone Apps Script project creates its own spreadsheet');
+assert.equal(props.get('SPREADSHEET_ID'), 'test-book');
+assert.equal(call('/setup-status').data.needsSetup, true);
 const setupToken = props.get('SETUP_TOKEN');
 assert.ok(setupToken.length >= 32);
 assert.equal(call('/setup', 'POST', { setupToken: 'wrong', username: 'admin', name: 'Admin', password: 'long-password-1' }).status, 403);

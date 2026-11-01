@@ -17,8 +17,12 @@ const HEADERS = {
 };
 
 function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const props = PropertiesService.getScriptProperties();
+  let ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss && props.getProperty('SPREADSHEET_ID')) {
+    try { ss = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID')); } catch (err) { ss = null; }
+  }
+  if (!ss) ss = SpreadsheetApp.create('عضویت قدم');
   props.setProperty('SPREADSHEET_ID', ss.getId());
   if (!props.getProperty('SECRET')) props.setProperty('SECRET', randomToken_());
   if (!props.getProperty('SETUP_TOKEN')) props.setProperty('SETUP_TOKEN', randomToken_());
@@ -31,8 +35,9 @@ function setup() {
   const config = ss.getSheetByName('Config');
   config.getRange('A2:B2').setValues([['SETUP_TOKEN', props.getProperty('SETUP_TOKEN')]]);
   config.getRange('A3:B3').setValues([['راهنما', 'این فایل را خصوصی نگه دارید. لینک Web App را در اپ قدم وارد کنید.']]);
+  Logger.log('SPREADSHEET_URL=' + ss.getUrl());
   Logger.log('SETUP_TOKEN=' + props.getProperty('SETUP_TOKEN'));
-  return 'آماده است. کد راه‌اندازی در شیت Config و لاگ دیده می‌شود.';
+  return 'آماده است. لینک Sheet و کد راه‌اندازی در لاگ اجرای setup دیده می‌شود.';
 }
 
 function doGet(e) { return handle_({ path: (e && e.parameter && e.parameter.path) || '/health', method: 'GET' }); }
@@ -62,7 +67,10 @@ function fail_(status, message) { const err = new Error(message); err.httpStatus
 function props_() { return PropertiesService.getScriptProperties(); }
 function ss_() {
   const id = props_().getProperty('SPREADSHEET_ID');
-  return id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  if (id) return SpreadsheetApp.openById(id);
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+  fail_(500, 'اول تابع setup را یک بار اجرا کن تا فایل عضویت ساخته شود.');
 }
 function rows_(name) {
   const sheet = ss_().getSheetByName(name);
