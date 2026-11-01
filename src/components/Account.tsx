@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, KeyRound, LogOut, RefreshCw, Server, ShieldCheck, UserPlus } from 'lucide-react';
 import { Modal } from './UI';
-import { api, errorMessage, getApiBase, login, setApiBase, setToken } from '../lib/api';
+import { api, errorMessage, getApiBase, login, normalizeApiBase, setApiBase, setToken } from '../lib/api';
 import type { Membership } from '../hooks/useMembership';
 import { levels } from '../data/catalog';
 import { isNativeApp } from '../lib/native';
@@ -12,11 +12,28 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [setupToken, setSetupToken] = useState('');
   const [name, setName] = useState('');
-  useEffect(() => { if (!server) return; void api<{ needsSetup: boolean }>('/setup-status').then((r) => setNeedsSetup(r.needsSetup)).catch(() => {}); }, [server]);
-  async function saveServer() { try { setApiBase(server); await membership.refresh(); notify('آدرس سرور ذخیره شد.'); } catch (error) { notify(errorMessage(error)); } }
+  useEffect(() => {
+    if (!getApiBase()) return;
+    let alive = true;
+    void api<{ needsSetup: boolean }>('/setup-status').then((r) => { if (alive) setNeedsSetup(r.needsSetup); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  async function saveServer() {
+    setChecking(true);
+    try {
+      const normalized = normalizeApiBase(server);
+      setApiBase(normalized);
+      setServer(normalized);
+      const status = await api<{ needsSetup: boolean }>('/setup-status');
+      setNeedsSetup(status.needsSetup);
+      notify(status.needsSetup ? 'اتصال برقرار شد. حالا کد راه‌اندازی را وارد کن.' : 'اتصال برقرار شد. وارد حساب کاربری شو.');
+    } catch (error) { notify(errorMessage(error)); }
+    finally { setChecking(false); }
+  }
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setBusy(true);
     try {
@@ -35,7 +52,7 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
     </> : <>
       <p className="modal-description">سطح مبتدی ۱ رایگان است. برای سطح‌های دیگر، حسابی که مدیر برایت ساخته وارد کن.</p>
       <label className="name-setting"><span><Server size={15}/>آدرس سرور یا لینک گوگل</span><input dir="ltr" value={server} placeholder="https://script.google.com/macros/s/.../exec" onChange={(event) => setServer(event.target.value)}/></label>
-      <button className="text-button" onClick={() => void saveServer()}>ذخیره و بررسی سرور<ArrowLeft size={15}/></button>
+      <button className="text-button" onClick={() => void saveServer()} disabled={checking}>{checking ? 'در حال بررسی…' : 'ذخیره و بررسی اتصال'}<ArrowLeft size={15}/></button>
       {needsSetup && <div className="privacy-note"><KeyRound size={20}/><p>این سرور تازه است. کد راه‌اندازی که هنگام نصب سرور ساخته شده وارد کن تا حساب مدیر خودت ساخته شود.</p></div>}
       <form onSubmit={(event) => void submit(event)} className="account-form">
         {needsSetup && <><label className="name-setting"><span>کد راه‌اندازی سرور</span><input dir="ltr" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} required/></label><label className="name-setting"><span>نام نمایشی مدیر</span><input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required/></label></>}
