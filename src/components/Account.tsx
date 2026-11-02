@@ -85,6 +85,7 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
     </> : <>
       <p className="modal-description">سطح مبتدی ۱ رایگان است. برای سطح‌های دیگر، حسابی که مدیر برایت ساخته وارد کن.</p>
       <label className="name-setting"><span><Server size={15}/>آدرس سرور یا لینک گوگل</span><input dir="ltr" value={server} placeholder="https://script.google.com/macros/s/.../exec" onChange={(event) => setServer(event.target.value)}/></label>
+      <p className="settings-hint">لینک باید مثل <span dir="ltr">script.google.com/macros/s/…/exec</span> باشد. لینک Google Sheet یا لینک <span dir="ltr">/dev</span> کار نمی‌کند.</p>
       <button className="text-button" onClick={() => void saveServer()} disabled={checking}>{checking ? 'در حال بررسی…' : 'ذخیره و بررسی اتصال'}<ArrowLeft size={15}/></button>
       {needsSetup && <div className="privacy-note"><KeyRound size={20}/><p>این سرور تازه است. کد راه‌اندازی که هنگام نصب سرور ساخته شده وارد کن تا حساب مدیر خودت ساخته شود. ساخت حساب چند ثانیه طول می‌کشد؛ صفحه را نبند.</p></div>}
       {needsSetup && <button type="button" className="text-button" onClick={() => setNeedsSetup(false)}>قبلاً حساب ساختم؛ فقط می‌خواهم وارد شوم</button>}

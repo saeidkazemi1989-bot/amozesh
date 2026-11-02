@@ -37,8 +37,17 @@ test('only a deployed Apps Script link is treated as Google mode', () => {
 
 test('an https server address works and plain http is rejected away from localhost', () => {
   assert.equal(normalizeApiBase('https://members.example.com/'), 'https://members.example.com');
+  assert.equal(normalizeApiBase('https://members.example.com/api/?x=1'), 'https://members.example.com/api');
   assert.equal(normalizeApiBase('http://localhost:3001'), 'http://localhost:3001');
+  assert.equal(normalizeApiBase('members.example.com'), 'https://members.example.com');
   assert.throws(() => normalizeApiBase('http://members.example.com'), /https/);
-  assert.throws(() => normalizeApiBase('members.example.com'), /آدرس معتبر نیست/);
   assert.equal(normalizeApiBase('   '), '');
+});
+
+test('a Google Sheet link is named for what it is instead of a network error', () => {
+  assert.throws(() => normalizeApiBase('https://docs.google.com/spreadsheets/d/abc123/edit'), /Google Sheet/);
+});
+
+test('a link pasted without https:// is still understood', () => {
+  assert.equal(normalizeApiBase(`script.google.com/macros/s/${ID}/exec`), exec);
 });
