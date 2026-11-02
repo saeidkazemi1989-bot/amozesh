@@ -1,167 +1,179 @@
 
-> ghadam-language-learning@1.3.4 test
+> ghadam-language-learning@1.3.5 test
 > tsx --test src/lib/*.test.ts server/*.test.ts
 
 TAP version 13
-# (node:2530) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (node:2314) ExperimentalWarning: SQLite is an experimental feature and might change at any time
 # (Use `node --trace-warnings ...` to show where the warning was created)
 # Subtest: calendar months clamp month ends and extend from expiry
 ok 1 - calendar months clamp month ends and extend from expiry
   ---
-  duration_ms: 1.599698
+  duration_ms: 1.095115
   type: 'test'
   ...
 # Subtest: password hashing and sessions are server-side
 ok 2 - password hashing and sessions are server-side
   ---
-  duration_ms: 193.921754
+  duration_ms: 149.701566
   type: 'test'
   ...
 # Subtest: level access is free level plus unexpired grants; admin sees all
 ok 3 - level access is free level plus unexpired grants; admin sees all
   ---
-  duration_ms: 1.932081
+  duration_ms: 1.121354
   type: 'test'
   ...
-# (node:2531) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (node:2315) ExperimentalWarning: SQLite is an experimental feature and might change at any time
 # (Use `node --trace-warnings ...` to show where the warning was created)
 # Subtest: setup, member creation, timed grant, content gating and revocation work end to end
 ok 4 - setup, member creation, timed grant, content gating and revocation work end to end
   ---
-  duration_ms: 312.173479
+  duration_ms: 248.764485
   type: 'test'
   ...
 # Subtest: a clean Web App link is kept as is
 ok 5 - a clean Web App link is kept as is
   ---
-  duration_ms: 2.590054
+  duration_ms: 1.279978
   type: 'test'
   ...
 # Subtest: a messy pasted link is repaired instead of failing
 ok 6 - a messy pasted link is repaired instead of failing
   ---
-  duration_ms: 0.660779
+  duration_ms: 0.225733
   type: 'test'
   ...
 # Subtest: a /dev link is rejected with a helpful message
 ok 7 - a /dev link is rejected with a helpful message
   ---
-  duration_ms: 0.934791
+  duration_ms: 0.332791
   type: 'test'
   ...
 # Subtest: only a deployed Apps Script link is treated as Google mode
 ok 8 - only a deployed Apps Script link is treated as Google mode
   ---
-  duration_ms: 0.509335
+  duration_ms: 0.171824
   type: 'test'
   ...
 # Subtest: an https server address works and plain http is rejected away from localhost
 ok 9 - an https server address works and plain http is rejected away from localhost
   ---
-  duration_ms: 0.74687
+  duration_ms: 0.366721
+  type: 'test'
+  ...
+# Subtest: a Google Sheet link is named for what it is instead of a network error
+ok 10 - a Google Sheet link is named for what it is instead of a network error
+  ---
+  duration_ms: 0.103142
+  type: 'test'
+  ...
+# Subtest: a link pasted without https:// is still understood
+ok 11 - a link pasted without https:// is still understood
+  ---
+  duration_ms: 0.167717
   type: 'test'
   ...
 # Subtest: calendar arithmetic handles month, year and leap-day boundaries
-ok 10 - calendar arithmetic handles month, year and leap-day boundaries
+ok 12 - calendar arithmetic handles month, year and leap-day boundaries
   ---
-  duration_ms: 2.794657
+  duration_ms: 1.912401
   type: 'test'
   ...
 # Subtest: curriculum has 10 levels, 60 lessons and 180 unique phrases; only free level ships in the app
-ok 11 - curriculum has 10 levels, 60 lessons and 180 unique phrases; only free level ships in the app
+ok 13 - curriculum has 10 levels, 60 lessons and 180 unique phrases; only free level ships in the app
   ---
-  duration_ms: 0.61362
+  duration_ms: 0.406549
   type: 'test'
   ...
 # Subtest: a new learner starts at hello with a gentle five-minute session
-ok 12 - a new learner starts at hello with a gentle five-minute session
+ok 14 - a new learner starts at hello with a gentle five-minute session
   ---
-  duration_ms: 1.318821
+  duration_ms: 0.91492
   type: 'test'
   ...
 # Subtest: all session lengths respect the selected goal and a tiny session is one question
-ok 13 - all session lengths respect the selected goal and a tiny session is one question
+ok 15 - all session lengths respect the selected goal and a tiny session is one question
   ---
-  duration_ms: 0.650499
+  duration_ms: 0.404237
   type: 'test'
   ...
 # Subtest: options contain one correct answer and three distinct choices
-ok 14 - options contain one correct answer and three distinct choices
+ok 16 - options contain one correct answer and three distinct choices
   ---
-  duration_ms: 0.947095
+  duration_ms: 0.63752
   type: 'test'
   ...
 # Subtest: word order ignores punctuation and case, not word sequence
-ok 15 - word order ignores punctuation and case, not word sequence
+ok 17 - word order ignores punctuation and case, not word sequence
   ---
-  duration_ms: 0.5182
+  duration_ms: 0.400771
   type: 'test'
   ...
 # Subtest: answering is idempotent and learning a phrase schedules tomorrow
-ok 16 - answering is idempotent and learning a phrase schedules tomorrow
+ok 18 - answering is idempotent and learning a phrase schedules tomorrow
   ---
-  duration_ms: 0.4912
+  duration_ms: 0.487189
   type: 'test'
   ...
 # Subtest: complete a lesson, persist it, and recommend the next lesson
-ok 17 - complete a lesson, persist it, and recommend the next lesson
+ok 19 - complete a lesson, persist it, and recommend the next lesson
   ---
-  duration_ms: 12.43318
+  duration_ms: 9.118029
   type: 'test'
   ...
 # Subtest: a wrong answer is kind but returns sooner in review
-ok 18 - a wrong answer is kind but returns sooner in review
+ok 20 - a wrong answer is kind but returns sooner in review
   ---
-  duration_ms: 1.108327
+  duration_ms: 0.945935
   type: 'test'
   ...
 # Subtest: correct review increases the interval and caps at thirty days
-ok 19 - correct review increases the interval and caps at thirty days
+ok 21 - correct review increases the interval and caps at thirty days
   ---
-  duration_ms: 1.252878
+  duration_ms: 1.033354
   type: 'test'
   ...
 # Subtest: overdue items remain available after a break; there is no streak reset
-ok 20 - overdue items remain available after a break; there is no streak reset
+ok 22 - overdue items remain available after a break; there is no streak reset
   ---
-  duration_ms: 0.367268
+  duration_ms: 0.315596
   type: 'test'
   ...
 # Subtest: tiny practice and early exit never falsely complete a lesson
-ok 21 - tiny practice and early exit never falsely complete a lesson
+ok 23 - tiny practice and early exit never falsely complete a lesson
   ---
-  duration_ms: 0.957705
+  duration_ms: 0.674875
   type: 'test'
   ...
 # Subtest: free review works before any phrase has been learned
-ok 22 - free review works before any phrase has been learned
+ok 24 - free review works before any phrase has been learned
   ---
-  duration_ms: 0.248306
+  duration_ms: 0.176391
   type: 'test'
   ...
 # Subtest: corrupt, incompatible and unsafe saved data is rejected
-ok 23 - corrupt, incompatible and unsafe saved data is rejected
+ok 25 - corrupt, incompatible and unsafe saved data is rejected
   ---
-  duration_ms: 0.497633
+  duration_ms: 0.478856
   type: 'test'
   ...
 # Subtest: restored mid-question progress remains valid and does not award duplicate activity
-ok 24 - restored mid-question progress remains valid and does not award duplicate activity
+ok 26 - restored mid-question progress remains valid and does not award duplicate activity
   ---
-  duration_ms: 0.418885
+  duration_ms: 0.31242
   type: 'test'
   ...
-1..24
-# tests 24
+1..26
+# tests 26
 # suites 0
-# pass 24
+# pass 26
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 961.545481
+# duration_ms 708.341749
 
-> ghadam-language-learning@1.3.4 test:apps-script
+> ghadam-language-learning@1.3.5 test:apps-script
 > node scripts/test-apps-script.mjs
 
 Apps Script backend verified: setup, login, admin/member roles, timed grants, extension, revocation, disabling, content gating, old-password upgrade and admin reset.
