@@ -62,7 +62,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     let httpStatus = 200;
     try {
       if (isNativeApp) {
-        const response = await CapacitorHttp.post({ url: base, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data: payload, responseType: 'text', connectTimeout: 20000, readTimeout: 20000 });
+        const response = await CapacitorHttp.post({ url: base, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data: payload, responseType: 'text', connectTimeout: 20000, readTimeout: 90000 });
         httpStatus = response.status;
         text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
       } else {
@@ -70,7 +70,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
         httpStatus = response.status;
         text = await response.text();
       }
-    } catch { throw new ApiError('اتصال به سرویس گوگل برقرار نشد. اینترنت/فیلترشکن و لینک /exec را بررسی کن.', 0); }
+    } catch { throw new ApiError('اتصال به سرویس گوگل برقرار نشد یا پاسخ دیر رسید. اینترنت/فیلترشکن و لینک /exec را بررسی کن و یک بار دیگر تلاش کن.', 0); }
     let data: { status?: number; data?: T & { error?: string } };
     try { data = JSON.parse(text); }
     catch {

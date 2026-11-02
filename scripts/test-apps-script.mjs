@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { randomUUID, createHash } from 'node:crypto';
+import { randomUUID, createHash, createHmac } from 'node:crypto';
 
 function a1(range) {
   const m = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(range);
@@ -17,6 +17,7 @@ class Sheet {
   appendRow(row) { this.values.push([...row]); }
   setFrozenRows() {}
   deleteRow(row) { this.values.splice(row - 1, 1); }
+  deleteRows(row, count) { this.values.splice(row - 1, count); }
   getRange(row, col, rows = 1, cols = 1) {
     const r = typeof row === 'string' ? a1(row) : { row, col, rows, cols };
     const self = this;
@@ -48,7 +49,8 @@ const context = {
     getUuid: randomUUID,
     DigestAlgorithm: { SHA_256: 'SHA_256' },
     Charset: { UTF_8: 'UTF_8' },
-    computeDigest: (_alg, value) => [...createHash('sha256').update(String(value)).digest()]
+    computeDigest: (_alg, value) => [...createHash('sha256').update(String(value)).digest()],
+    computeHmacSha256Signature: (value, key) => [...createHmac('sha256', String(key)).update(String(value)).digest()]
   },
   ContentService: { MimeType: { JSON: 'JSON' }, createTextOutput: (text) => ({ setMimeType() { return this; }, getContent: () => text }) }
 };
@@ -96,4 +98,31 @@ assert.equal(call('/me', 'GET', undefined, memberToken).status, 401);
 assert.equal(call('/auth/login', 'POST', { username: 'sara', password: 'member-password-1' }).status, 401);
 assert.equal(call('/auth/login', 'POST', { username: 'admin', password: 'wrong-password' }).status, 401);
 assert.equal(call('/auth/login', 'POST', { username: 'admin', password: 'long-password-1' }).status, 200);
-console.log('Apps Script backend verified: setup, login, admin/member roles, timed grants, extension, revocation, disabling and content gating.');
+
+// A password saved by the first release (5000 sha256 rounds) still works once,
+// then gets replaced by the fast HMAC format so later logins are instant.
+const users = book.getSheetByName('Users');
+const header = users.getRange(1, 1, 1, users.values[0].length).getValues()[0];
+const adminRow = users.values.findIndex((row, i) => i > 0 && row[header.indexOf('username')] === 'admin');
+let legacy = 'feedface:' + 'x';
+{
+  const salt = 'feedface';
+  const secret = props.get('SECRET');
+  let value = salt + ':' + 'long-password-1' + ':' + secret;
+  for (let i = 0; i < 5000; i++) value = createHash('sha256').update(value).digest('hex');
+  legacy = salt + ':' + value;
+}
+users.values[adminRow][header.indexOf('passwordHash')] = legacy;
+assert.equal(call('/auth/login', 'POST', { username: 'admin', password: 'wrong-password' }).status, 401, 'old hash still rejects a wrong password');
+const upgraded = call('/auth/login', 'POST', { username: 'admin', password: 'long-password-1' });
+assert.equal(upgraded.status, 200, 'old password hash still logs in');
+assert.ok(String(users.values[adminRow][header.indexOf('passwordHash')]).includes('$1$'), 'login rewrites the hash in the fast format');
+assert.equal(call('/auth/login', 'POST', { username: 'admin', password: 'long-password-1' }).status, 200);
+
+// resetAdmin clears accounts and hands out a fresh setup token.
+context.resetAdmin();
+assert.equal(call('/setup-status').data.needsSetup, true);
+assert.notEqual(props.get('SETUP_TOKEN'), setupToken);
+assert.equal(call('/setup', 'POST', { setupToken, username: 'admin', name: 'Admin', password: 'long-password-1' }).status, 403);
+assert.equal(call('/setup', 'POST', { setupToken: props.get('SETUP_TOKEN'), username: 'admin', name: 'Admin', password: 'long-password-1' }).status, 201);
+console.log('Apps Script backend verified: setup, login, admin/member roles, timed grants, extension, revocation, disabling, content gating, old-password upgrade and admin reset.');

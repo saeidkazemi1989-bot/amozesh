@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, KeyRound, LogOut, RefreshCw, Server, ShieldCheck, UserPlus } from 'lucide-react';
 import { Modal } from './UI';
-import { api, errorMessage, getApiBase, login, normalizeApiBase, setApiBase, setToken } from '../lib/api';
+import { ApiError, api, errorMessage, getApiBase, login, normalizeApiBase, setApiBase, setToken } from '../lib/api';
 import type { Membership } from '../hooks/useMembership';
 import { levels } from '../data/catalog';
 import { isNativeApp } from '../lib/native';
@@ -38,11 +38,26 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
     event.preventDefault(); setBusy(true);
     try {
       let account;
-      if (needsSetup) { const result = await api<{ token: string; user: { role: string } }>('/setup', { method: 'POST', body: JSON.stringify({ setupToken, username, name, password }) }); await setToken(result.token); account = result.user; }
-      else account = await login(username, password);
+      if (needsSetup) {
+        try {
+          const result = await api<{ token: string; user: { role: string } }>('/setup', { method: 'POST', body: JSON.stringify({ setupToken, username, name, password }) });
+          await setToken(result.token); account = result.user;
+        } catch (error) {
+          const status = error instanceof ApiError ? error.status : -1;
+          // The account may have been created even though the reply arrived late,
+          // or it already exists: try signing in with the same details.
+          if (status !== 409 && status !== 0) throw error;
+          try { account = await login(username, password); setNeedsSetup(false); }
+          catch { throw new Error('حساب مدیر ساخته نشد یا رمز با آن هم‌خوان نیست. یک بار دیگر دکمه را بزن؛ اگر گفت حساب وجود دارد، با همان نام کاربری و رمز وارد شو.'); }
+        }
+      } else account = await login(username, password);
       await membership.loggedIn(); notify('خوش آمدی به قدم.');
       if (account.role === 'admin') onAdmin(); else onClose();
-    } catch (error) { notify(errorMessage(error)); } finally { setBusy(false); }
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : -1;
+      if (status === 0) notify('پاسخ سرور دیر رسید یا اتصال قطع شد. یک بار دیگر تلاش کن؛ اگر باز هم نشد، در Apps Script لاگ اجرای آخر را ببین.');
+      else notify(errorMessage(error));
+    } finally { setBusy(false); }
   }
   return <Modal title={membership.user ? 'حساب و دسترسی‌ها' : needsSetup ? 'راه‌اندازی حساب مدیر' : 'ورود به حساب قدم'} onClose={onClose} className="account-modal">
     {membership.user ? <>
@@ -53,12 +68,13 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
       <p className="modal-description">سطح مبتدی ۱ رایگان است. برای سطح‌های دیگر، حسابی که مدیر برایت ساخته وارد کن.</p>
       <label className="name-setting"><span><Server size={15}/>آدرس سرور یا لینک گوگل</span><input dir="ltr" value={server} placeholder="https://script.google.com/macros/s/.../exec" onChange={(event) => setServer(event.target.value)}/></label>
       <button className="text-button" onClick={() => void saveServer()} disabled={checking}>{checking ? 'در حال بررسی…' : 'ذخیره و بررسی اتصال'}<ArrowLeft size={15}/></button>
-      {needsSetup && <div className="privacy-note"><KeyRound size={20}/><p>این سرور تازه است. کد راه‌اندازی که هنگام نصب سرور ساخته شده وارد کن تا حساب مدیر خودت ساخته شود.</p></div>}
+      {needsSetup && <div className="privacy-note"><KeyRound size={20}/><p>این سرور تازه است. کد راه‌اندازی که هنگام نصب سرور ساخته شده وارد کن تا حساب مدیر خودت ساخته شود. ساخت حساب چند ثانیه طول می‌کشد؛ صفحه را نبند.</p></div>}
+      {needsSetup && <button type="button" className="text-button" onClick={() => setNeedsSetup(false)}>قبلاً حساب ساختم؛ فقط می‌خواهم وارد شوم</button>}
       <form onSubmit={(event) => void submit(event)} className="account-form">
         {needsSetup && <><label className="name-setting"><span>کد راه‌اندازی سرور</span><input dir="ltr" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} required/></label><label className="name-setting"><span>نام نمایشی مدیر</span><input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required/></label></>}
         <label className="name-setting"><span>نام کاربری</span><input dir="ltr" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} minLength={3} maxLength={40} required/></label>
         <label className="name-setting"><span>رمز عبور</span><input dir="ltr" type="password" autoComplete={needsSetup ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} minLength={10} maxLength={128} required/></label>
-        <button className="button button-primary full-width" disabled={busy || !server}>{busy ? 'کمی صبر کن…' : needsSetup ? 'ساخت حساب مدیر' : 'ورود'}<ArrowLeft size={17}/></button>
+        <button className="button button-primary full-width" disabled={busy || !server}>{busy ? (needsSetup ? 'در حال ساخت حساب…' : 'کمی صبر کن…') : needsSetup ? 'ساخت حساب مدیر' : 'ورود'}<ArrowLeft size={17}/></button>
       </form>
       {membership.error && <p className="form-error" role="alert">{membership.error}</p>}
       <small className="settings-hint">{isNativeApp ? 'رمز ورود در فضای امن اندروید نگهداری می‌شود.' : 'نشست وب با کوکی امن نگهداری می‌شود.'} پیشرفت تمرین جداگانه روی همین دستگاه می‌ماند.</small>

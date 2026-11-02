@@ -8,6 +8,7 @@ const LEVELS = __LEVELS__;
 const LESSONS = __LESSONS__;
 const FREE_LEVEL = 'beginner-1';
 const SESSION_MS = 30 * 86400000;
+var SECRET_CACHE = '';
 const HEADERS = {
   Users: ['id','username','name','passwordHash','role','active','createdAt'],
   Sessions: ['tokenHash','userId','expiresAt','createdAt'],
@@ -25,6 +26,7 @@ function setup() {
   if (!ss) ss = SpreadsheetApp.create('عضویت قدم');
   props.setProperty('SPREADSHEET_ID', ss.getId());
   if (!props.getProperty('SECRET')) props.setProperty('SECRET', randomToken_());
+  SECRET_CACHE = '';
   if (!props.getProperty('SETUP_TOKEN')) props.setProperty('SETUP_TOKEN', randomToken_());
   Object.keys(HEADERS).forEach(function (name) {
     let sheet = ss.getSheetByName(name);
@@ -38,6 +40,23 @@ function setup() {
   Logger.log('SPREADSHEET_URL=' + ss.getUrl());
   Logger.log('SETUP_TOKEN=' + props.getProperty('SETUP_TOKEN'));
   return 'آماده است. لینک Sheet و کد راه‌اندازی در لاگ اجرای setup دیده می‌شود.';
+}
+
+// Use this only when nobody can sign in any more (wrong admin password, or a
+// half-finished setup). It deletes the Users and Sessions sheets and makes a
+// fresh SETUP_TOKEN so the app shows "ساخت حساب مدیر" again.
+function resetAdmin() {
+  const ss = ss_();
+  ['Sessions', 'Users'].forEach(function (name) {
+    const sheet = ss.getSheetByName(name);
+    if (sheet && sheet.getLastRow() > 1) sheet.deleteRows(2, sheet.getLastRow() - 1);
+  });
+  const props = props_();
+  props.setProperty('SETUP_TOKEN', randomToken_());
+  const config = ss.getSheetByName('Config');
+  if (config) config.getRange('A2:B2').setValues([['SETUP_TOKEN', props.getProperty('SETUP_TOKEN')]]);
+  Logger.log('SETUP_TOKEN=' + props.getProperty('SETUP_TOKEN'));
+  return 'حساب‌ها پاک شدند. کد راه‌اندازی تازه در Config!B2 و در لاگ همین اجرا است.';
 }
 
 function doGet(e) { return handle_({ path: (e && e.parameter && e.parameter.path) || '/health', method: 'GET' }); }
@@ -99,24 +118,34 @@ function lock_(fn) {
   try { return fn(); } finally { lock.releaseLock(); }
 }
 function randomToken_() { return (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, ''); }
-function sha256_(value) {
-  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, value, Utilities.Charset.UTF_8);
+function hex_(bytes) {
   return bytes.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
 }
+function sha256_(value) {
+  return hex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, value, Utilities.Charset.UTF_8));
+}
+function secret_() {
+  if (!SECRET_CACHE) SECRET_CACHE = props_().getProperty('SECRET') || '';
+  return SECRET_CACHE;
+}
+function hmac_(value) { return hex_(Utilities.computeHmacSha256Signature(String(value), secret_())); }
 function hashPassword_(password) {
   const salt = randomToken_();
-  let value = salt + ':' + password + ':' + (props_().getProperty('SECRET') || '');
-  for (let i = 0; i < 5000; i++) value = sha256_(value);
-  return salt + ':' + value;
+  return salt + ':$1$' + hmac_(salt + ':' + password);
 }
 function verifyPassword_(password, stored) {
   const parts = String(stored || '').split(':');
   if (parts.length !== 2) return false;
-  let value = parts[0] + ':' + password + ':' + (props_().getProperty('SECRET') || '');
-  for (let i = 0; i < 5000; i++) value = sha256_(value);
-  return value === parts[1];
+  if (parts[1].indexOf('$1$') === 0) return hmac_(parts[0] + ':' + password) === parts[1].slice(3);
+  return legacyHash_(parts[0], password) === parts[1];
 }
-function tokenHash_(token) { return sha256_(token + ':' + (props_().getProperty('SECRET') || '')); }
+function legacyHash_(salt, password) {
+  let value = salt + ':' + password + ':' + secret_();
+  for (let i = 0; i < 5000; i++) value = sha256_(value);
+  return value;
+}
+function passwordNeedsUpgrade_(stored) { return String(stored || '').indexOf(':$1$') < 0; }
+function tokenHash_(token) { return sha256_(token + ':' + secret_()); }
 function validUsername_(v) { return typeof v === 'string' && /^[a-zA-Z0-9._-]{3,40}$/.test(v); }
 function validName_(v) { return typeof v === 'string' && v.trim().length > 0 && v.trim().length <= 60; }
 function validPassword_(v) { return typeof v === 'string' && v.length >= 10 && v.length <= 128; }
@@ -192,6 +221,7 @@ function route_(path, method, body, token) {
     rateLimit_('login:' + String(body.username || '').slice(0, 80), 20, 900);
     const user = rows_('Users').find(function (u) { return u.username === body.username; });
     if (!user || !(user.active === true || user.active === 'TRUE' || user.active === 1) || !verifyPassword_(String(body.password || ''), user.passwordHash)) fail_(401, 'نام کاربری یا رمز درست نیست، یا حساب غیرفعال است.');
+    if (passwordNeedsUpgrade_(user.passwordHash)) update_('Users', user._row, { passwordHash: hashPassword_(String(body.password)) });
     const session = createSession_(user.id);
     return { data: { user: publicUser_(user), token: session } };
   });
