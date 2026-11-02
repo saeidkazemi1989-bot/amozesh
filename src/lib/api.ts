@@ -10,32 +10,21 @@ export type Me = { user: Account; serverTime: number; freeLevel: string; levels:
 const URL_KEY = 'ghadam-api-url';
 const TOKEN_KEY = 'ghadam-session';
 const APPS_TOKEN_KEY = 'ghadam-apps-session';
-export function normalizeApiBase(value: string): string {
-  const trimmed = value.trim().replace(/\/+$/, '');
-  if (!trimmed) return '';
-  let url: URL;
-  try { url = new URL(trimmed); } catch { throw new Error('آدرس معتبر نیست؛ باید با https:// شروع شود.'); }
-  const localHttp = url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname);
-  if (url.protocol !== 'https:' && !localHttp) throw new Error('آدرس سرور باید با https:// شروع شود.');
-  if (url.hostname === 'script.google.com') {
-    const match = url.pathname.match(/^\/macros\/s\/([A-Za-z0-9_-]+)\/(exec|dev)\/?$/);
-    if (!match) throw new Error('لینک Web App گوگل معتبر نیست؛ از Manage deployments لینک /exec را کپی کن.');
-    if (match[2] === 'dev') throw new Error('لینک /dev فقط برای ویرایشگر است؛ لینک /exec را از Manage deployments کپی کن.');
-    return `https://script.google.com/macros/s/${match[1]}/exec`;
-  }
-  return trimmed.replace(/\/+$/, '');
-}
-export const isAppsScriptBase = (base: string) => {
-  try { const url = new URL(base); return url.protocol === 'https:' && url.hostname === 'script.google.com' && /^\/macros\/s\/[A-Za-z0-9_-]+\/exec\/?$/.test(url.pathname); }
-  catch { return false; }
-};
+export { normalizeApiBase, isAppsScriptBase } from './apiBase';
+import { isAppsScriptBase, normalizeApiBase } from './apiBase';
 export class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
 
 export function getApiBase(): string {
   const configured = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
-  const saved = localStorage.getItem(URL_KEY)?.trim();
+  const saved = (localStorage.getItem(URL_KEY) ?? '').trim();
   const base = saved || configured || (isNativeApp ? '' : window.location.origin);
-  return base.replace(/\/+$/, '');
+  if (!base) return '';
+  try {
+    const normalized = normalizeApiBase(base);
+    // Repair a link that an older version saved in a messy shape.
+    if (saved && normalized !== saved) { try { localStorage.setItem(URL_KEY, normalized); } catch { /* storage full or private mode */ } }
+    return normalized;
+  } catch { return base.replace(/\/+$/, ''); }
 }
 export function setApiBase(value: string) {
   localStorage.setItem(URL_KEY, normalizeApiBase(value));
@@ -49,6 +38,28 @@ export async function setToken(token: string | null) {
   if (isNativeApp) { if (token) await SecureStorage.set(TOKEN_KEY, token); else await SecureStorage.remove(TOKEN_KEY); return; }
   if (isAppsScriptBase(getApiBase())) { if (token) localStorage.setItem(APPS_TOKEN_KEY, token); else localStorage.removeItem(APPS_TOKEN_KEY); }
 }
+let lastDiagnostic = '';
+export const getLastDiagnostic = () => lastDiagnostic;
+const describe = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 140);
+async function postAppsScript(base: string, payload: string, path: string): Promise<{ text: string; status: number }> {
+  const failures: string[] = [];
+  if (isNativeApp) {
+    try {
+      const response = await CapacitorHttp.post({ url: base, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data: payload, responseType: 'text', connectTimeout: 20000, readTimeout: 90000 });
+      const text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+      lastDiagnostic = `${path} · اندروید ${response.status} · ${text.length} نویسه`;
+      return { text, status: response.status };
+    } catch (error) { failures.push(`اندروید: ${describe(error)}`); }
+  }
+  try {
+    const response = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload, redirect: 'follow', credentials: 'omit' });
+    const text = await response.text();
+    lastDiagnostic = `${path} · مرورگر ${response.status} · ${text.length} نویسه`;
+    return { text, status: response.status };
+  } catch (error) { failures.push(`مرورگر: ${describe(error)}`); }
+  lastDiagnostic = `${path} · ناموفق · ${failures.join(' | ')}`.slice(0, 220);
+  throw new ApiError('اتصال به سرویس گوگل برقرار نشد. اینترنت/فیلترشکن را بررسی کن و یک بار دیگر تلاش کن.', 0);
+}
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const base = getApiBase();
   if (!base) throw new ApiError('اول آدرس سرور قدم را وارد کن.', 0);
@@ -58,19 +69,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (isAppsScriptBase(base)) {
     const payload = JSON.stringify({ path, method: init.method ?? 'GET', body: init.body ? JSON.parse(String(init.body)) : undefined, token: token ?? undefined });
-    let text = '';
-    let httpStatus = 200;
-    try {
-      if (isNativeApp) {
-        const response = await CapacitorHttp.post({ url: base, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data: payload, responseType: 'text', connectTimeout: 20000, readTimeout: 90000 });
-        httpStatus = response.status;
-        text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-      } else {
-        const response = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload, redirect: 'follow', credentials: 'omit' });
-        httpStatus = response.status;
-        text = await response.text();
-      }
-    } catch { throw new ApiError('اتصال به سرویس گوگل برقرار نشد یا پاسخ دیر رسید. اینترنت/فیلترشکن و لینک /exec را بررسی کن و یک بار دیگر تلاش کن.', 0); }
+    const { text, status: httpStatus } = await postAppsScript(base, payload, path);
     let data: { status?: number; data?: T & { error?: string } };
     try { data = JSON.parse(text); }
     catch {

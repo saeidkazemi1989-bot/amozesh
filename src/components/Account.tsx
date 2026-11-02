@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, KeyRound, LogOut, RefreshCw, Server, ShieldCheck, UserPlus } from 'lucide-react';
 import { Modal } from './UI';
-import { ApiError, api, errorMessage, getApiBase, login, normalizeApiBase, setApiBase, setToken } from '../lib/api';
+import { ApiError, api, errorMessage, getApiBase, getLastDiagnostic, isAppsScriptBase, login, normalizeApiBase, setApiBase, setToken } from '../lib/api';
 import type { Membership } from '../hooks/useMembership';
 import { levels } from '../data/catalog';
 import { isNativeApp } from '../lib/native';
@@ -16,27 +16,44 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
   const [needsSetup, setNeedsSetup] = useState(false);
   const [setupToken, setSetupToken] = useState('');
   const [name, setName] = useState('');
+  const [diagnostic, setDiagnostic] = useState('');
   useEffect(() => {
     if (!getApiBase()) return;
     let alive = true;
     void api<{ needsSetup: boolean }>('/setup-status').then((r) => { if (alive) setNeedsSetup(r.needsSetup); }).catch(() => {});
     return () => { alive = false; };
   }, []);
+  function useTypedServer(): string {
+    // Always trust what is in the box right now, never a value saved earlier.
+    if (!server.trim()) return getApiBase();
+    const normalized = normalizeApiBase(server);
+    if (normalized !== getApiBase()) { setApiBase(normalized); setServer(normalized); }
+    return normalized;
+  }
   async function saveServer() {
-    setChecking(true);
+    setChecking(true); setDiagnostic('');
     try {
-      const normalized = normalizeApiBase(server);
-      setApiBase(normalized);
-      setServer(normalized);
+      const base = useTypedServer();
+      if (!base) throw new Error('اول لینک Web App را در کادر بالا بگذار.');
+      if (isAppsScriptBase(base)) {
+        // /health never touches the spreadsheet, so a failure here really is
+        // the link, the deployment or the network.
+        await api<{ ok: boolean }>('/health');
+      }
       const status = await api<{ needsSetup: boolean }>('/setup-status');
       setNeedsSetup(status.needsSetup);
+      setDiagnostic(getLastDiagnostic());
       notify(status.needsSetup ? 'اتصال برقرار شد. حالا کد راه‌اندازی را وارد کن.' : 'اتصال برقرار شد. وارد حساب کاربری شو.');
-    } catch (error) { notify(errorMessage(error)); }
+    } catch (error) {
+      setDiagnostic(getLastDiagnostic() || errorMessage(error));
+      notify(errorMessage(error));
+    }
     finally { setChecking(false); }
   }
   async function submit(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true);
+    event.preventDefault(); setBusy(true); setDiagnostic('');
     try {
+      useTypedServer();
       let account;
       if (needsSetup) {
         try {
@@ -55,7 +72,8 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
       if (account.role === 'admin') onAdmin(); else onClose();
     } catch (error) {
       const status = error instanceof ApiError ? error.status : -1;
-      if (status === 0) notify('پاسخ سرور دیر رسید یا اتصال قطع شد. یک بار دیگر تلاش کن؛ اگر باز هم نشد، در Apps Script لاگ اجرای آخر را ببین.');
+      setDiagnostic(getLastDiagnostic() || errorMessage(error));
+      if (status === 0) notify('پاسخ گوگل نرسید. یک بار دیگر تلاش کن؛ اگر باز هم نشد، پیام ریز پایین فرم را برایم بفرست.');
       else notify(errorMessage(error));
     } finally { setBusy(false); }
   }
@@ -70,6 +88,7 @@ export function AccountModal({ membership, onClose, onAdmin, notify }: { members
       <button className="text-button" onClick={() => void saveServer()} disabled={checking}>{checking ? 'در حال بررسی…' : 'ذخیره و بررسی اتصال'}<ArrowLeft size={15}/></button>
       {needsSetup && <div className="privacy-note"><KeyRound size={20}/><p>این سرور تازه است. کد راه‌اندازی که هنگام نصب سرور ساخته شده وارد کن تا حساب مدیر خودت ساخته شود. ساخت حساب چند ثانیه طول می‌کشد؛ صفحه را نبند.</p></div>}
       {needsSetup && <button type="button" className="text-button" onClick={() => setNeedsSetup(false)}>قبلاً حساب ساختم؛ فقط می‌خواهم وارد شوم</button>}
+      {diagnostic && <p className="settings-hint" dir="auto">آخرین بررسی: {diagnostic}</p>}
       <form onSubmit={(event) => void submit(event)} className="account-form">
         {needsSetup && <><label className="name-setting"><span>کد راه‌اندازی سرور</span><input dir="ltr" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} required/></label><label className="name-setting"><span>نام نمایشی مدیر</span><input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required/></label></>}
         <label className="name-setting"><span>نام کاربری</span><input dir="ltr" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} minLength={3} maxLength={40} required/></label>
